@@ -342,11 +342,11 @@ func lexCharacterDelimited(source string, ic cursor, delimiter byte) (*token, cu
 					loc:   ic.loc,
 					kind:  stringKind,
 				}, cur, true
-			} else {
-				value = append(value, delimiter)
-				cur.pointer++
-				cur.loc.col++
 			}
+
+			value = append(value, delimiter)
+			cur.pointer++
+			cur.loc.col++
 		}
 
 		value = append(value, c)
@@ -366,7 +366,7 @@ func lexIdentifier(source string, ic cursor) (*token, cursor, bool) {
 
 	c := source[cur.pointer]
 	// other characters count too, big ignoring non ascii for now
-	isAlphabetical := (c >= 'A' && c <= 'Z') || (c >= 'a' || c <= 'z')
+	isAlphabetical := (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
 	if !isAlphabetical {
 		return nil, ic, false
 	}
