@@ -54,7 +54,7 @@ func (p Parser) parseTokenKind(tokens []*token, initialCursor uint, kind tokenKi
 func (p Parser) parseToken(tokens []*token, initialCursor uint, t token) (*token, uint, bool) {
 	cursor := initialCursor
 
-	if cursor >= uint(len(token)) {
+	if cursor >= uint(len(tokens)) {
 		return nil, initialCursor, false
 	}
 
