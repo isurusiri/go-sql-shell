@@ -81,3 +81,91 @@ func (p Parser) parseLiteralExpression(tokens []*token, initialCursor uint) (*ex
 
 	return nil, initialCursor, false
 }
+
+func (p Parser) parseExpression(tokens []*token, initialCursor uint, delimiters []token, minBp uint) (*expression, uint, bool) {
+	cursor := initialCursor
+
+	var exp *expression
+	_, newCursor, ok := p.parseToken(tokens, cursor, tokenFromSymbol(leftParenSymbol))
+	if ok {
+		cursor = newCursor
+		rightParenToken := tokenFromSymbol(rightParenSymbol)
+
+		exp, cursor, ok = p.parseExpression(tokens, cursor, append(delimiters, rightParenToken), minBp)
+		if !ok {
+			p.helpMessage(tokens, cursor, "Exprected expression after opening paren")
+			return nil, initialCursor, false
+		}
+
+		_, cursor, ok = p.parseToken(tokens, cursor, rightParenToken)
+		if !ok {
+			p.helpMessage(tokens, cursor, "Exprected closing paren")
+			return nil, initialCursor, false
+		}
+
+	} else {
+		exp, cursor, ok = p.parseLiteralExpression(tokens, cursor)
+		if !ok {
+			return nil, initialCursor, false
+		}
+	}
+
+	lastCursor := cursor
+outer:
+	for cursor < uint(len(tokens)) {
+		for _, d := range delimiters {
+			_, _, ok = p.parseToken(tokens, cursor, d)
+			if ok {
+				break outer
+			}
+		}
+
+		binOps := []token{
+			tokenFromKeyword(andKeyword),
+			tokenFromKeyword(orKeyword),
+			tokenFromSymbol(eqSymbol),
+			tokenFromSymbol(neqSymbol),
+			tokenFromSymbol(concatSymbol),
+			tokenFromSymbol(plusSymbol),
+		}
+
+		var op *token
+		for _, bo := range binOps {
+			var t *token
+			t, cursor, ok = p.parseToken(tokens, cursor, bo)
+			if ok {
+				op = t
+				break
+			}
+		}
+
+		if op == nil {
+			p.helpMessage(tokens, cursor, "Expected binary operator")
+			return nil, initialCursor, false
+		}
+
+		bp := op.bindingPower()
+		if bp < minBp {
+			cursor = lastCursor
+			break
+		}
+
+		b, newCursor, ok := p.parseExpression(tokens, cursor, delimiters, bp)
+		if !ok {
+			p.helpMessage(tokens, cursor, "Expected right operand")
+			return nil, initialCursor, false
+		}
+		exp = &expression{
+			binary: &binaryExpression{
+				*exp,
+				*b,
+				*op,
+			},
+			kind: binaryKind,
+		}
+		cursor = newCursor
+		lastCursor = cursor
+	}
+
+	return exp, cursor, true
+}
