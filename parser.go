@@ -169,3 +169,64 @@ outer:
 
 	return exp, cursor, true
 }
+
+func (p Parser) parseSelectItem(tokens []*token, initialCursor uint, delimiters []token) (*[]*selectItem, uint, bool) {
+	cursor := initialCursor
+
+	var s []*selectItem
+outer:
+	for {
+		if cursor >= uint(len(tokens)) {
+			return nil, initialCursor, false
+		}
+
+		current := tokens[cursor]
+		for _, delimiter := range delimiters {
+			if delimiter.equals(current) {
+				break outer
+			}
+		}
+
+		var ok bool
+		if len(s) > 0 {
+			_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(commaSymbol))
+			if !ok {
+				p.helpMessage(tokens, cursor, "Expected comma")
+				return nil, initialCursor, false
+			}
+		}
+
+		var si selectItem
+		_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(asteriskSymbol))
+		if ok {
+			si = selectItem{asterisk: true}
+		} else {
+			asToken := tokenFromKeyword(asKeyword)
+			delimiters := append(delimiters, tokenFromSymbol(commaSymbol), asToken)
+			exp, newCursor, ok := p.parseExpression(tokens, cursor, delimiters, 0)
+			if !ok {
+				p.helpMessage(tokens, cursor, "Expected expression")
+				return nil, initialCursor, false
+			}
+
+			cursor = newCursor
+			si.exp = exp
+
+			_, cursor, ok = p.parseToken(tokens, cursor, asToken)
+			if ok {
+				id, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+				if !ok {
+					p.helpMessage(tokens, cursor, "Expected identifier after AS")
+					return nil, initialCursor, false
+				}
+
+				cursor = newCursor
+				si.as = id
+			}
+		}
+
+		s = append(s, &si)
+	}
+
+	return &s, cursor, true
+}
