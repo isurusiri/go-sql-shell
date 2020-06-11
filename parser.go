@@ -234,7 +234,7 @@ outer:
 func (p Parser) parseSelectStatement(tokens []*token, initialCursor uint, delimiter token) (*SelectStatement, uint, bool) {
 	var ok bool
 	cursor := initialCursor
-	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(selecKeyword))
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(selectKeyword))
 	if !ok {
 		return nil, initialCursor, false
 	}
@@ -242,7 +242,7 @@ func (p Parser) parseSelectStatement(tokens []*token, initialCursor uint, delimi
 	slct := SelectStatement{}
 
 	fromToken := tokenFromKeyword(fromKeyword)
-	item, newCursor, ok := p.parseSelectItem(token, cursor, []token{fromToken, delimiter})
+	item, newCursor, ok := p.parseSelectItem(tokens, cursor, []token{fromToken, delimiter})
 	if !ok {
 		return nil, initialCursor, false
 	}
