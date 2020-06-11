@@ -230,3 +230,51 @@ outer:
 
 	return &s, cursor, true
 }
+
+func (p Parser) parseSelectStatement(tokens []*token, initialCursor uint, delimiter token) (*SelectStatement, uint, bool) {
+	var ok bool
+	cursor := initialCursor
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(selecKeyword))
+	if !ok {
+		return nil, initialCursor, false
+	}
+
+	slct := SelectStatement{}
+
+	fromToken := tokenFromKeyword(fromKeyword)
+	item, newCursor, ok := p.parseSelectItem(token, cursor, []token{fromToken, delimiter})
+	if !ok {
+		return nil, initialCursor, false
+	}
+
+	slct.item = item
+	cursor = newCursor
+
+	whereToken := tokenFromKeyword(whereKeyword)
+
+	_, cursor, ok = p.parseToken(tokens, cursor, fromToken)
+	if ok {
+		from, newCursor, ok := p.parseToken(tokens, cursor, fromToken)
+		if !ok {
+			p.helpMessage(tokens, cursor, "Expected FROM item")
+			return nil, initialCursor, false
+		}
+
+		slct.from = from
+		cursor = newCursor
+	}
+
+	_, cursor, ok = p.parseToken(tokens, cursor, whereToken)
+	if ok {
+		where, newCursor, ok := p.parseExpression(tokens, cursor, []token{delimiter}, 0)
+		if !ok {
+			p.helpMessage(tokens, cursor, "Expected WHERE conditionals")
+			return nil, initialCursor, false
+		}
+
+		slct.where = where
+		cursor = newCursor
+	}
+
+	return &slct, cursor, true
+}
