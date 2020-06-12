@@ -278,3 +278,39 @@ func (p Parser) parseSelectStatement(tokens []*token, initialCursor uint, delimi
 
 	return &slct, cursor, true
 }
+
+func (p Parser) parseExpressions(tokens []*token, initialCursor uint, delimiter token) (*[]*expression, uint, bool) {
+	cursor := initialCursor
+
+	var exps []*expression
+	for {
+		if cursor >= uint(len(tokens)) {
+			return nil, initialCursor, false
+		}
+
+		current := tokens[cursor]
+		if delimiter.equals(current) {
+			break
+		}
+
+		if len(exps) > 0 {
+			var ok bool
+			_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(commaSymbol))
+			if !ok {
+				p.helpMessage(tokens, cursor, "Expected comma")
+				return nil, initialCursor, false
+			}
+		}
+
+		exp, newCursor, ok := p.parseExpression(tokens, cursor, []token{tokenFromSymbol(commaSymbol), tokenFromSymbol(rightParenSymbol)}, 0)
+		if !ok {
+			p.helpMessage(tokens, cursor, "Expected expression")
+			return nil, initialCursor, false
+		}
+		cursor = newCursor
+
+		exps = append(exps, exp)
+	}
+
+	return &exps, cursor, true
+}
