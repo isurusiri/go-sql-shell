@@ -314,3 +314,50 @@ func (p Parser) parseExpressions(tokens []*token, initialCursor uint, delimiter 
 
 	return &exps, cursor, true
 }
+
+func (p Parser) parseInsertStatement(tokens []*token, initialCursor uint, _ token) (*InsertStatement, uint, bool) {
+	cursor := initialCursor
+	ok := false
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(insertKeyword))
+	if !ok {
+		return nil, initialCursor, false
+	}
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(intoKeyword))
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expected into")
+		return nil, initialCursor, false
+	}
+
+	table, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expecte table name")
+		return nil, initialCursor, false
+	}
+	cursor = newCursor
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(valuesKeyword))
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expected left paren")
+		return nil, initialCursor, false
+	}
+
+	values, newCursor, ok := p.parseExpressions(tokens, cursor, tokenFromSymbol(rightParenSymbol))
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expected expressions")
+		return nil, initialCursor, false
+	}
+	cursor = newCursor
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(rightParenSymbol))
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expected right paren")
+		return nil, initialCursor, false
+	}
+
+	return &InsertStatement{
+		table:  *table,
+		values: values,
+	}, cursor, true
+}
