@@ -361,3 +361,56 @@ func (p Parser) parseInsertStatement(tokens []*token, initialCursor uint, _ toke
 		values: values,
 	}, cursor, true
 }
+
+func (p Parser) parseColumnDefinitions(tokens []*token, initialCursor uint, delimiter token) (*[]*columnDefinition, uint, bool) {
+	cursor := initialCursor
+
+	var cds []*columnDefinition
+	for {
+		if cursor >= uint(len(tokens)) {
+			return nil, initialCursor, false
+		}
+
+		current := tokens[cursor]
+		if delimiter.equals(current) {
+			break
+		}
+
+		if len(cds) > 0 {
+			var ok bool
+			_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(commaSymbol))
+			if !ok {
+				p.helpMessage(tokens, cursor, "Expected comma")
+				return nil, initialCursor, false
+			}
+		}
+
+		id, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+		if !ok {
+			p.helpMessage(tokens, cursor, "Expected column name")
+			return nil, initialCursor, false
+		}
+		cursor = newCursor
+
+		ty, newCursor, ok := p.parseTokenKind(tokens, cursor, keywordKind)
+		if !ok {
+			p.helpMessage(tokens, cursor, "Expected column type")
+			return nil, initialCursor, false
+		}
+		cursor = newCursor
+
+		primaryKey := false
+		_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(primarykeyKeyword))
+		if ok {
+			primaryKey = true
+		}
+
+		cds = append(cds, &columnDefinition{
+			name:       *id,
+			datatype:   *ty,
+			primaryKey: primaryKey,
+		})
+	}
+
+	return &cds, cursor, true
+}
