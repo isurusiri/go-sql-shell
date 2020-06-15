@@ -414,3 +414,13 @@ func (p Parser) parseColumnDefinitions(tokens []*token, initialCursor uint, deli
 
 	return &cds, cursor, true
 }
+
+func (p Parser) parseCreateTableStatement(tokens []*token, initialCursor uint, _ token) (*CreateTableStatement, uint, bool) {
+	cursor := initialCursor
+	ok := false
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(createKeyword))
+	if !ok {
+		return nil, initialCursor, false
+	}
+}
