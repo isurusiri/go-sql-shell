@@ -423,4 +423,39 @@ func (p Parser) parseCreateTableStatement(tokens []*token, initialCursor uint, _
 	if !ok {
 		return nil, initialCursor, false
 	}
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(tableKeyword))
+	if !ok {
+		return nil, initialCursor, false
+	}
+
+	name, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expected table name")
+		return nil, initialCursor, false
+	}
+	cursor = newCursor
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(leftParenSymbol))
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expected left parenthesis")
+		return nil, initialCursor, false
+	}
+
+	cols, newCursor, ok := p.parseColumnDefinitions(tokens, cursor, tokenFromSymbol(rightParenSymbol))
+	if !ok {
+		return nil, initialCursor, false
+	}
+	cursor = newCursor
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(rightParenSymbol))
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expected right parenthesis")
+		return nil, initialCursor, false
+	}
+
+	return &CreateTableStatement{
+		name: *name,
+		cols: cols,
+	}, cursor, true
 }
