@@ -459,3 +459,29 @@ func (p Parser) parseCreateTableStatement(tokens []*token, initialCursor uint, _
 		cols: cols,
 	}, cursor, true
 }
+
+func (p Parser) parseDropTableStatement(tokens []*token, initialCursor uint, _ token) (*DropTableStatement, uint, bool) {
+	cursor := initialCursor
+	ok := false
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(dropKeyword))
+	if !ok {
+		return nil, initialCursor, false
+	}
+
+	_, cursor, ok = p.parseToken(tokens, cursor, tokenFromKeyword(tableKeyword))
+	if !ok {
+		return nil, initialCursor, false
+	}
+
+	name, newCursor, ok := p.parseTokenKind(tokens, cursor, identifierKind)
+	if !ok {
+		p.helpMessage(tokens, cursor, "Expected table name")
+		return nil, initialCursor, false
+	}
+	cursor = newCursor
+
+	return &DropTableStatement{
+		name: *name,
+	}, cursor, true
+}
