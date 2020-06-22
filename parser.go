@@ -485,3 +485,42 @@ func (p Parser) parseDropTableStatement(tokens []*token, initialCursor uint, _ t
 		name: *name,
 	}, cursor, true
 }
+
+func (p Parser) parseStatement(tokens []*token, initialCursor uint, _ token) (*Statement, uint, bool) {
+	cursor := initialCursor
+
+	semicolonToken := tokenFromSymbol(semicolonSymbol)
+	slct, newCursor, ok := p.parseSelectStatement(tokens, cursor, semicolonToken)
+	if ok {
+		return &Statement{
+			Kind:            SelectKind,
+			SelectStatement: slct,
+		}, newCursor, true
+	}
+
+	inst, newCursor, ok := p.parseInsertStatement(tokens, cursor, semicolonToken)
+	if ok {
+		return &Statement{
+			Kind:            InsertKind,
+			InsertStatement: inst,
+		}, newCursor, true
+	}
+
+	crtTbl, newCursor, ok := p.parseCreateTableStatement(tokens, cursor, semicolonToken)
+	if ok {
+		return &Statement{
+			Kind:                 CreateTableKind,
+			CreateTableStatement: crtTbl,
+		}, newCursor, true
+	}
+
+	dpTbl, newCursor, ok := p.parseDropTableStatement(tokens, cursor, semicolonToken)
+	if ok {
+		return &Statement{
+			Kind:               DropTableKind,
+			DropTableStatement: dpTbl,
+		}, newCursor, true
+	}
+
+	return nil, initialCursor, false
+}
