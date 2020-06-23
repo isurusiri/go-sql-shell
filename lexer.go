@@ -31,6 +31,9 @@ const (
 	trueKeyword       keyword = "true"
 	falseKeyword      keyword = "false"
 	primarykeyKeyword keyword = "primary key"
+	uniqueKeyword     keyword = "unique"
+	indexKeyword      keyword = "index"
+	onKeyword         keyword = "on"
 )
 
 type symbol string
