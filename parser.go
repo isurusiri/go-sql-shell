@@ -569,6 +569,14 @@ func (p Parser) parseStatement(tokens []*token, initialCursor uint, _ token) (*S
 		}, newCursor, true
 	}
 
+	crtIdx, newCursor, ok := p.parseCreateIndexStatement(tokens, cursor, semicolonToken)
+	if ok {
+		return &Statement{
+			Kind:                 CreateIndexKind,
+			CreateIndexStatement: crtIdx,
+		}, newCursor, true
+	}
+
 	dpTbl, newCursor, ok := p.parseDropTableStatement(tokens, cursor, semicolonToken)
 	if ok {
 		return &Statement{
