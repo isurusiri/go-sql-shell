@@ -1,6 +1,9 @@
 package gosqlshell
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 func tokenFromKeyword(k keyword) token {
 	return token{
@@ -586,4 +589,47 @@ func (p Parser) parseStatement(tokens []*token, initialCursor uint, _ token) (*S
 	}
 
 	return nil, initialCursor, false
+}
+
+// Parse is used to parse SQL syntx
+func (p Parser) Parse(source string) (*Ast, error) {
+	tokens, err := lex(source)
+	if err != nil {
+		return nil, err
+	}
+
+	semicolonToken := tokenFromSymbol(semicolonSymbol)
+	if len(tokens) > 0 && !tokens[len(tokens)-1].equals(&semicolonToken) {
+		tokens = append(tokens, &semicolonToken)
+	}
+
+	a := Ast{}
+	cursor := uint(0)
+	for cursor < uint(len(tokens)) {
+		stmt, newCursor, ok := p.parseStatement(tokens, cursor, tokenFromSymbol(semicolonSymbol))
+		if !ok {
+			p.helpMessage(tokens, cursor, "Expected statement")
+			return nil, errors.New("Failed to parse, expected statement")
+		}
+		cursor = newCursor
+
+		a.Statements = append(a.Statements, stmt)
+
+		atLeastOneSemicolon := false
+		for {
+			_, cursor, ok = p.parseToken(tokens, cursor, tokenFromSymbol(semicolonSymbol))
+			if ok {
+				atLeastOneSemicolon = true
+			} else {
+				break
+			}
+		}
+
+		if !atLeastOneSemicolon {
+			p.helpMessage(tokens, cursor, "Expected semi-colon delimiter between statements")
+			return nil, errors.New("Missing semi colon between statements")
+		}
+	}
+
+	return &a, nil
 }
